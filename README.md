@@ -8,25 +8,13 @@
 ![API key](https://img.shields.io/badge/API%20key-not%20required-success)
 ![Tests](https://img.shields.io/badge/tests-8%20passing-brightgreen)
 
-```text
-you ▸  which recording booths are non-compliant?
-
-       [tool] list_endpoints(role="recording-booth", compliant=false)
-
-Claude ▸ 7 of 30 recording booths are non-compliant — all from stale MDM
-         check-ins. Worst: BOOTH-156 (SEA, 32 days dark, risk 88). The booths
-         cluster under one root cause: `stale-checkin-booths`.
-         Want a remediation runbook for the cluster?
-
-you ▸  yes
-
-       [tool] generate_runbook(cluster_key="stale-checkin-booths")
-
-Claude ▸ Drafted a Confluence-style runbook → Summary / Scope / Root cause /
-         Remediation steps / Verification / Rollback.
-```
+![Talk to your fleet from Claude](docs/screenshots/talk-to-fleet.svg)
 
 > Full demo transcript: [`samples/transcript.md`](samples/transcript.md) · Inspector walkthrough: [`samples/inspector.md`](samples/inspector.md)
+
+### The whole protocol surface at a glance
+
+![Tools, resources, and prompts](docs/screenshots/protocol-surface.svg)
 
 ---
 
@@ -132,14 +120,18 @@ pytest
 
 ## Architecture
 
-```text
-  data/fleet.json ─┐
-                   ├─▶  vendored engine  ─▶  FleetReport  ─▶  MCP server  ─▶  Claude client
-  config/ruleset ──┘   (score · cluster)     (the seam)       (tools/res/      (the reasoning)
-                                                                prompts)
+```mermaid
+flowchart LR
+    D["data/fleet.json<br/>synthetic inventory"] --> EN
+    R["config/ruleset.yaml<br/>policy"] --> EN
+    EN["vendored engine<br/>engine.analyze()<br/>score · cluster"] --> SRV
+    SRV["MCP server<br/>🔧 tools · 📄 resources · 💬 prompts"] --> CLIENT["Claude client<br/>Code / Desktop<br/>the reasoning"]
+    CLIENT -. answers .-> U([you])
 ```
 
 One deterministic seam (`fleet.engine.analyze`) feeds every tool, so the inventory, the verdicts, and the runbooks can never disagree. The model sits *on top* of that ground truth — it queries the fleet, it doesn't invent it.
+
+> Deeper dive — layers, the single-seam rule, determinism: [`docs/architecture.md`](docs/architecture.md).
 
 ## License
 
